@@ -1,11 +1,10 @@
 package org.myblognew.MyBlogNew.Service;
 
-import org.myblognew.MyBlogNew.dto.ArticleCreateDTO;
 import org.myblognew.MyBlogNew.dto.ArticleDTO;
-import org.myblognew.MyBlogNew.exception.ResourceNotFoundException;
 import org.myblognew.MyBlogNew.mapper.ArticleMapper;
 import org.myblognew.MyBlogNew.model.Article;
 import org.myblognew.MyBlogNew.repository.ArticleRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -16,60 +15,76 @@ import java.util.stream.Collectors;
 @Service
 public class ArticleService {
 
-    private final ArticleRepository articleRepository;
-    private final ArticleMapper articleMapper;
+    @Autowired
+    private ArticleRepository articleRepository;
 
-    public ArticleService(ArticleRepository articleRepository, ArticleMapper articleMapper) {
-        this.articleRepository = articleRepository;
-        this.articleMapper = articleMapper;
-    }
+    @Autowired
+    private ArticleMapper articleMapper;
 
     public List<ArticleDTO> getAllArticles() {
         List<Article> articles = articleRepository.findAll();
-        return articles.stream().map(articleMapper::convertToDTO).collect(Collectors.toList());
+        return articles.stream()
+                .map(articleMapper::convertToDTO)
+                .collect(Collectors.toList());
     }
 
-
-    public ArticleDTO getArticleById(Long id) {
-        Article article = articleRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("L'article avec l'id " + id + " n'a pas été trouvé"));
-        return articleMapper.convertToDTO(article);
+    public Optional<ArticleDTO> getArticleById(Long id) {
+        Optional<Article> article = articleRepository.findById(id);
+        return article.map(articleMapper::convertToDTO);
     }
 
-    // ArticleService
-    public ArticleDTO createArticle(ArticleCreateDTO articleCreateDTO) {
-        Article article = articleMapper.convertToEntity(articleCreateDTO);
+    public ArticleDTO createArticle(ArticleDTO articleDTO) {
+        Article article = articleMapper.convertToEntity(articleDTO);
         article.setCreatedAt(LocalDateTime.now());
         article.setUpdatedAt(LocalDateTime.now());
-
         Article savedArticle = articleRepository.save(article);
         return articleMapper.convertToDTO(savedArticle);
     }
 
     public Optional<ArticleDTO> updateArticle(Long id, ArticleDTO articleDTO) {
-        Optional<Article> optionalArticle = articleRepository.findById(id);
-        if (!optionalArticle.isPresent()) {
+        Optional<Article> articleOptional = articleRepository.findById(id);
+        if (articleOptional.isEmpty()) {
             return Optional.empty();
         }
-        Article article = optionalArticle.get();
+
+        Article article = articleOptional.get();
         article.setTitle(articleDTO.getTitle());
         article.setContent(articleDTO.getContent());
         article.setUpdatedAt(LocalDateTime.now());
-
-        if (articleDTO.getCategoryId() != null) {
-            articleMapper.convertToEntity(articleDTO).getCategory();
-        }
 
         Article updatedArticle = articleRepository.save(article);
         return Optional.of(articleMapper.convertToDTO(updatedArticle));
     }
 
-    public boolean deleteArticle(Long id) {
-        Optional<Article> optionalArticle = articleRepository.findById(id);
-        if (!optionalArticle.isPresent()) {
-            return false;
-        }
-        articleRepository.delete(optionalArticle.get());
-        return true;
+    public void deleteArticle(Long id) {
+        articleRepository.deleteById(id);
+    }
+
+    public List<ArticleDTO> getArticlesByTitle(String title) {
+        List<Article> articles = articleRepository.findByTitle(title);
+        return articles.stream()
+                .map(articleMapper::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<ArticleDTO> getArticlesByContent(String content) {
+        List<Article> articles = articleRepository.findByContentContaining(content);
+        return articles.stream()
+                .map(articleMapper::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<ArticleDTO> getArticlesCreatedAfter(LocalDateTime date) {
+        List<Article> articles = articleRepository.findByCreatedAtAfter(date);
+        return articles.stream()
+                .map(articleMapper::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<ArticleDTO> getLatestArticles() {
+        List<Article> articles = articleRepository.findTop5ByOrderByCreatedAtDesc();
+        return articles.stream()
+                .map(articleMapper::convertToDTO)
+                .collect(Collectors.toList());
     }
 }
