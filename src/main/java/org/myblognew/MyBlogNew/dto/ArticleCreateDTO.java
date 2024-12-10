@@ -64,5 +64,5 @@ public class ArticleCreateDTO {
     public void setAuthors(List<AuthorContributionDTO> authors) {
         this.authors = authors;
     }
-}
 
+}
