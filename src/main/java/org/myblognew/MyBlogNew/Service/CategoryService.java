@@ -1,6 +1,7 @@
 package org.myblognew.MyBlogNew.Service;
 
 import org.myblognew.MyBlogNew.dto.CategoryDTO;
+import org.myblognew.MyBlogNew.exception.ResourceNotFoundException;
 import org.myblognew.MyBlogNew.mapper.CategoryMapper;
 import org.myblognew.MyBlogNew.model.Category;
 import org.myblognew.MyBlogNew.repository.CategoryRepository;
@@ -40,11 +41,12 @@ public class CategoryService {
         return categories.stream().map(categoryMapper::convertToDTO).collect(Collectors.toList());
     }
 
-    @GetMapping("/{id}")
-    public CategoryDTO getCategoryById(@PathVariable Long id) {
-        Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Category not found")); // Lève une exception si la catégorie n'est pas trouvée
-        return categoryMapper.convertToDTO(category);
+    public CategoryDTO getCategoryById(Long id) {
+        Optional<Category> optionalCategory = categoryRepository.findById(id);
+        if (!optionalCategory.isPresent()) {
+            throw new ResourceNotFoundException("Category not found with id " + id);
+        }
+        return categoryMapper.convertToDTO(optionalCategory.get());
     }
 
 
@@ -69,6 +71,7 @@ public class CategoryService {
         categoryRepository.delete(optionalCategory.get());
         return true;
     }
+
 }
 
 
