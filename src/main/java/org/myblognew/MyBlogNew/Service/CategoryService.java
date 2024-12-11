@@ -41,14 +41,12 @@ public class CategoryService {
     }
 
     @GetMapping("/{id}")
-    public Optional<CategoryDTO> getCategoryById(@PathVariable Long id) {
-        Optional<Category> optionalCategory = categoryRepository.findById(id);
-        if (!optionalCategory.isPresent()) {
-            return Optional.empty();
-        }
-
-        return Optional.of(categoryMapper.convertToDTO(optionalCategory.get()));
+    public CategoryDTO getCategoryById(@PathVariable Long id) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Category not found")); // Lève une exception si la catégorie n'est pas trouvée
+        return categoryMapper.convertToDTO(category);
     }
+
 
     public Optional<CategoryDTO> updateCategory(Long id, CategoryDTO categoryDTO) {
         Optional<Category> optionalCategory = categoryRepository.findById(id);
